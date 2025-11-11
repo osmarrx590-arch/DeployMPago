@@ -93,6 +93,48 @@ Para receber notificações de pagamento, configure:
 
 O endpoint `/webhooks/mercadopago` já está implementado no backend.
 
+## ☁️ Deploy no Render (passo-a-passo)
+
+Se você está usando o Render para hospedar o backend e o frontend, siga estes passos para configurar as variáveis de ambiente, o webhook e o build corretamente.
+
+### 1) Backend (Web Service)
+
+- Vá ao painel do seu serviço backend (ex.: `choperia-backend`) → Environment → Environment Variables / Secret Files.
+- Adicione as seguintes variáveis (marque como secret quando disponível):
+   - `MERCADO_PAGO_ACCESS_TOKEN` = <SEU_ACCESS_TOKEN_DO_MERCADO_PAGO>
+   - `MP_ACCESS_TOKEN` = (opcional) <mesmo_valor_outra_chave> — usado como fallback
+   - `MP_PUBLIC_KEY` = (opcional) <SUA_PUBLIC_KEY> — só necessário se for usar o SDK cliente no browser
+   - `MP_FORCE_SANDBOX` = `true` ou `false` (use `true` para testes)
+   - `MP_NOTIFICATION_URL` = `https://<SEU_BACKEND_ONRENDER>/webhooks/mercadopago`
+
+- Observações:
+   - Prefira usar *Secret Files* ou marcar as variáveis como secret no Render para evitar vazar tokens.
+   - Substitua `<SEU_BACKEND_ONRENDER>` pelo domínio público do seu serviço (ex.: `choperia-backend-9ty4.onrender.com`).
+
+### 2) Frontend (Static Site)
+
+- No painel do serviço frontend (ex.: `choperia-frontend`) → Environment → Environment Variables, defina:
+   - `VITE_BACKEND_URL` = `https://<SEU_BACKEND_ONRENDER>` (necessário no momento do build)
+   - `VITE_MP_PUBLIC_KEY` = (opcional) sua public key, se for usar o SDK JS do Mercado Pago no navegador
+
+- Observação importante: variáveis `VITE_` são incorporadas em tempo de build. Se você alterar `VITE_BACKEND_URL` no painel, será necessário re-deploy do site para que o novo valor seja aplicado no bundle.
+
+### 3) Webhook no painel do Mercado Pago
+
+- No painel de desenvolvedor do Mercado Pago, configure o webhook apontando para o valor de `MP_NOTIFICATION_URL` que você definiu no Render.
+- No backend, o endpoint que recebe as notificações é `/webhooks/mercadopago` e já está implementado.
+
+### 4) Testes pós-deploy
+
+- Fazer um POST de teste para criar preferência (ex.: via curl/PowerShell) para verificar se o backend retorna `init_point` / `sandbox_init_point`.
+- Envie uma notificação de teste do Mercado Pago para a URL do webhook (ou use o painel do Mercado Pago para testes) e verifique os logs do serviço no painel do Render.
+
+### 5) Segurança e boas práticas
+
+- Nunca comite tokens no repositório. Se tokens já foram comitados, rotacione (gere novos) no painel do Mercado Pago.
+- Use as funcionalidades de *Environment Variables* ou *Secret Files* do Render para armazenar credenciais.
+- Para ambientes de produção, defina `MP_FORCE_SANDBOX=false` e use as credenciais de produção.
+
 ## 🎯 Próximos Passos (Produção)
 
 Para usar em produção:
