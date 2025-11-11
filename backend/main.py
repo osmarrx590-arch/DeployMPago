@@ -14,21 +14,9 @@ from .database import engine, get_db
 app = FastAPI(title='Choperia Backend API (refatorado)')
 from backend.logging_config import logger
 
-# Configurar CORS de forma dinâmica a partir da variável de ambiente
-# ALLOWED_ORIGINS — se não definida, usa valores padrão para desenvolvimento.
-allowed = os.environ.get('ALLOWED_ORIGINS')
-if allowed:
-    try:
-        allow_origins = [u.strip() for u in allowed.split(',') if u.strip()]
-    except Exception:
-        # fallback para valores seguros se parsing falhar
-        allow_origins = ["http://localhost:8080", "http://192.168.1.112:8080"]
-else:
-    allow_origins = ["http://localhost:8080", "http://192.168.1.112:8080"]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allow_origins,
+    allow_origins=["http://localhost:8080", "http://192.168.1.112:8080"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
