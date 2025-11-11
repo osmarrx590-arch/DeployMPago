@@ -14,9 +14,17 @@ from .database import engine, get_db
 app = FastAPI(title='Choperia Backend API (refatorado)')
 from backend.logging_config import logger
 
+# Configurar CORS com origins de desenvolvimento e produção
+allow_origins = [
+    "http://localhost:8080",
+    "http://192.168.1.112:8080",
+    "https://choperia-frontend.onrender.com",
+    "https://b0838d93-197c-4402-9187-14663daf293f.lovableproject.com",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080", "http://192.168.1.112:8080"],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -631,6 +639,35 @@ def api_processar_pagamento(mesa_id: int, payload: dict, db: Session = Depends(g
 
 
 # ----- Favoritos (loja online) -----
+@app.get('/favoritos/')
+def api_get_favoritos(request: Request, db: Session = Depends(get_db)):
+    """Retorna todos os favoritos do usuário autenticado com dados completos do produto."""
+    try:
+        token = request.cookies.get('access_token')
+        if not token:
+            auth = request.headers.get('Authorization') or ''
+            if auth.lower().startswith('bearer '):
+                token = auth.split(' ', 1)[1]
+
+        user_id = None
+        if token:
+            secret = os.environ.get('JWT_SECRET', 'devsecret')
+            try:
+                payload_jwt = jwt.decode(token, secret, algorithms=['HS256'])
+                user_id = int(payload_jwt.get('sub')) if payload_jwt.get('sub') else None
+            except Exception:
+                user_id = None
+
+        if not user_id:
+            user_id = 1
+
+        favoritos_list = crud.get_favoritos_usuario(db, user_id)
+        return favoritos_list
+    except Exception as e:
+        logger.exception(f"Erro ao listar favoritos: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @app.post('/favoritos/')
 def api_create_favorito(payload: dict, request: Request, db: Session = Depends(get_db)):
     """Cria um favorito para o usuário autenticado.
@@ -700,6 +737,44 @@ def api_remove_favorito(produto_id: int, request: Request, db: Session = Depends
 
 
 # ----- Avaliações (loja online) -----
+@app.get('/avaliacoes/')
+def api_get_avaliacoes(request: Request, db: Session = Depends(get_db)):
+    """Retorna todas as avaliações do usuário autenticado."""
+    try:
+        token = request.cookies.get('access_token')
+        if not token:
+            auth = request.headers.get('Authorization') or ''
+            if auth.lower().startswith('bearer '):
+                token = auth.split(' ', 1)[1]
+
+        user_id = None
+        if token:
+            secret = os.environ.get('JWT_SECRET', 'devsecret')
+            try:
+                payload_jwt = jwt.decode(token, secret, algorithms=['HS256'])
+                user_id = int(payload_jwt.get('sub')) if payload_jwt.get('sub') else None
+            except Exception:
+                user_id = None
+
+        if not user_id:
+            user_id = 1
+
+        avaliacoes = db.query(models.Avaliacao).filter(models.Avaliacao.user_id == user_id).all()
+        result = []
+        for aval in avaliacoes:
+            result.append({
+                'id': aval.id,
+                'user_id': aval.user_id,
+                'produto_id': aval.produto_id,
+                'rating': aval.rating,
+                'comentario': aval.comentario,
+            })
+        return result
+    except Exception as e:
+        logger.exception(f"Erro ao listar avaliacoes: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @app.post('/avaliacoes/')
 def api_create_or_update_avaliacao(payload: dict, request: Request, db: Session = Depends(get_db)):
     """Cria ou atualiza uma avaliação do usuário para um produto.
@@ -1012,4 +1087,3 @@ async def webhook_mercadopago(request: Request):
     except Exception as e:
         logger.exception(f'Erro processando webhook MP: {e}')
         return {'status': 'error', 'message': str(e)}
-
