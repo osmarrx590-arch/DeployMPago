@@ -450,11 +450,11 @@ def create_favorito(db: Session, usuario_id: int, produto_id: int) -> models.Fav
     return db_fav
 
 def get_favoritos_usuario(db: Session, usuario_id: int) -> List[models.Favorito]:
-    return db.query(models.Favorito).filter(models.Favorito.usuario_id == usuario_id).all()
+    return db.query(models.Favorito).filter(models.Favorito.user_id == usuario_id).all()
 
 def remove_favorito(db: Session, usuario_id: int, produto_id: int) -> bool:
     db_fav = db.query(models.Favorito).filter(
-        models.Favorito.usuario_id == usuario_id,
+        models.Favorito.user_id == usuario_id,
         models.Favorito.produto_id == produto_id
     ).first()
     if db_fav:
