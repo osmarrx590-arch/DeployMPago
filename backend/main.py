@@ -22,9 +22,13 @@ allow_origins = [
     "https://b0838d93-197c-4402-9187-14663daf293f.lovableproject.com",
 ]
 
+# Regex para permitir subdomínios do render (ex: frontend com sufixos dinâmicos)
+allow_origin_regex = r"https?://.*\.onrender\.com"
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
+    allow_origin_regex=allow_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
